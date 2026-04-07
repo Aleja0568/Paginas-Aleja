@@ -7078,6 +7078,10 @@ crédito registradas.</div>
   </div>
 
   <script>
+// ===== CONFIGURACIÓN SHAREPOINT =====
+const SP_SITE = "https://TUEMPRESA.sharepoint.com/sites/TUSITIO";
+const SP_PRODUCTS_LIST = "pos_v2_products";
+
     const DB_KEYS = {
       products: 'pos_v2_products',
       clients: 'pos_v2_clients',
@@ -7110,8 +7114,26 @@ crédito registradas.</div>
     function save(key, value) {
       localStorage.setItem(key, JSON.stringify(value));
     }
+// ===== LECTURA DE PRODUCTOS DESDE SHAREPOINT =====
+async function getProductsFromSharePoint() {
+  const url = `${SP_SITE}/_api/web/lists/getbytitle('${SP_PRODUCTS_LIST}')/items`;
 
-    function getProducts() { return load(DB_KEYS.products, []); }
+  const response = await fetch(url, {
+    headers: {
+      "Accept": "application/json;odata=verbose"
+    }
+  });
+
+  const data = await response.json();
+
+  return data.d.results.map(p => ({
+    name: p.Title,
+    price: p.price,
+    stock: p.stock
+  }));
+}
+``
+    async function getProducts() {
     function getClients() { return load(DB_KEYS.clients, []); }
     function getSales() { return load(DB_KEYS.sales, []); }
     function getInventoryMoves() { return load(DB_KEYS.inventoryMoves, []); }
@@ -7119,7 +7141,7 @@ crédito registradas.</div>
     function getCashMovements() { return load(DB_KEYS.cashMovements, []); }
     function getCollectionDocs() { return load(DB_KEYS.collectionDocs, []); }
 
-    function setProducts(v) { save(DB_KEYS.products, v); }
+    return await getProductsFromSharePoint();
     function setClients(v) { save(DB_KEYS.clients, v); }
     function setSales(v) { save(DB_KEYS.sales, v); }
     function setInventoryMoves(v) { save(DB_KEYS.inventoryMoves, v); }
@@ -7178,8 +7200,9 @@ crédito registradas.</div>
       return { efectivo, transferencia, total: efectivo + transferencia };
     }
 
-    function refreshSelectors() {
-      const products = getProducts();
+    async function refreshSelectors() {
+  const products = await getProducts();
+``
       const clients = getClients();
       document.getElementById('saleProduct').innerHTML = products.map(p => `<option value="${p.id}">${escapeHtml(p.name)} - ${formatCurrency(p.price)} (Stock: ${p.stock})</option>`).join('');
       document.getElementById('inventoryProduct').innerHTML = products.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
@@ -7545,8 +7568,8 @@ crédito registradas.</div>
       renderAll();
     }
 
-    function renderAll() {
-      refreshSelectors();
+  async function renderAll() {
+      await refreshSelectors();
       renderDashboard();
       renderSaleItems();
       renderSalesTable();
